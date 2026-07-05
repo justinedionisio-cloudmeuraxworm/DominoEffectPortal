@@ -8,7 +8,7 @@ import {
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
-// Firebase config
+// ================= FIREBASE =================
 const firebaseConfig = {
     apiKey: "AIzaSyBmlrYtgQ90nokJHrlQ8nHXlm2bjV1HeBM",
     authDomain: "dominoeffectresearch.firebaseapp.com",
@@ -21,25 +21,25 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// FORM
+// ================= FORM =================
 const form = document.getElementById("loginForm");
 
-// Google Form link
-const googleFormLink = "https://forms.gle/2b34XGkhKcWNTf8H8";
+// Google Form
+const GOOGLE_FORM = "https://forms.gle/2b34XGkhKcWNTf8H8";
 
-// Participant ID (clean format)
+// ================= PARTICIPANT =================
 const participantID = "P-" + Math.floor(100000 + Math.random() * 900000);
 
 let docID = null;
 const startTime = Date.now();
 
-// -------------------- DEVICE INFO --------------------
+// ================= DEVICE INFO =================
 function getBrowser() {
     const ua = navigator.userAgent;
     if (ua.includes("Edg")) return "Edge";
     if (ua.includes("Chrome")) return "Chrome";
     if (ua.includes("Firefox")) return "Firefox";
-    if (ua.includes("Safari")) return "Safari";
+    if (ua.includes("Safari") && !ua.includes("Chrome")) return "Safari";
     return "Unknown";
 }
 
@@ -52,30 +52,33 @@ function getPlatform() {
     return "Unknown";
 }
 
-// -------------------- SAVE ON OPEN --------------------
+function getScreen() {
+    return screen.width + "x" + screen.height;
+}
+
+// ================= SAVE ON OPEN =================
 async function saveVisit() {
     try {
         const ref = await addDoc(collection(db, "research"), {
             participantID: participantID,
             browser: getBrowser(),
             platform: getPlatform(),
-            screen: screen.width + "x" + screen.height,
+            screen: getScreen(),
             loginClicked: false,
             createdAt: serverTimestamp()
         });
 
         docID = ref.id;
-
         console.log("Saved:", docID);
 
     } catch (err) {
-        console.error(err);
+        console.error("Firestore error:", err);
     }
 }
 
 saveVisit();
 
-// -------------------- LOGIN CLICK --------------------
+// ================= LOGIN CLICK =================
 form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -90,44 +93,97 @@ form.addEventListener("submit", async (e) => {
             });
         }
 
-        // COMPLETION SCREEN
+        // ================= COMPLETION SCREEN =================
         document.body.innerHTML = `
-        <div style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:Arial;background:#f4f6f9;">
-            <div style="background:white;padding:30px;border-radius:12px;box-shadow:0 10px 20px rgba(0,0,0,.15);text-align:center;max-width:500px;">
-                
-                <h2>Simulation Complete</h2>
+        <div style="
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        min-height:100vh;
+        background:#f4f6f9;
+        font-family:Arial;
+        padding:20px;
+        ">
+        
+        <div style="
+        background:white;
+        padding:30px;
+        border-radius:12px;
+        box-shadow:0 10px 20px rgba(0,0,0,.15);
+        max-width:520px;
+        width:100%;
+        text-align:center;
+        ">
+        
+        <h2>Simulation Complete</h2>
 
-                <p>This was a simulated cybersecurity experiment.</p>
+        <p>This was a simulated cybersecurity experiment.</p>
 
-                <p><b>No passwords or personal credentials were collected.</b></p>
+        <p><b>No passwords or personal credentials were collected.</b></p>
 
-                <hr>
+        <hr>
 
-                <h3>Your Participant ID</h3>
+        <h3>Your Participant ID</h3>
 
-                <div style="font-size:22px;font-weight:bold;margin:10px 0;">
-                    ${participantID}
-                </div>
+        <div style="
+        font-size:26px;
+        font-weight:bold;
+        padding:12px;
+        background:#eef4ff;
+        border:2px dashed #2d7ff9;
+        border-radius:8px;
+        margin:10px 0;
+        ">
+        ${participantID}
+        </div>
 
-                <button onclick="navigator.clipboard.writeText('${participantID}')"
-                style="padding:10px 15px;margin:10px;background:#2d7ff9;color:white;border:none;border-radius:6px;cursor:pointer;">
-                    Copy ID
-                </button>
+        <button id="copyBtn"
+        style="
+        padding:10px 15px;
+        background:#2d7ff9;
+        color:white;
+        border:none;
+        border-radius:6px;
+        cursor:pointer;
+        margin:8px;
+        ">
+        Copy ID
+        </button>
 
-                <br><br>
+        <p style="margin-top:10px;">
+        Copy your ID then proceed to the Google Form.
+        </p>
 
-                <a href="${googleFormLink}" target="_blank">
-                    <button style="padding:12px 18px;background:#28a745;color:white;border:none;border-radius:6px;cursor:pointer;">
-                        Continue to Google Form
-                    </button>
-                </a>
+        <button id="formBtn"
+        style="
+        padding:12px 18px;
+        background:#28a745;
+        color:white;
+        border:none;
+        border-radius:6px;
+        cursor:pointer;
+        font-size:15px;
+        margin-top:10px;
+        ">
+        Go to Google Form
+        </button>
 
-            </div>
+        </div>
         </div>
         `;
 
+        // ================= BUTTON ACTIONS =================
+        document.getElementById("copyBtn").onclick = () => {
+            navigator.clipboard.writeText(participantID);
+            document.getElementById("copyBtn").innerText = "✔ Copied!";
+        };
+
+        document.getElementById("formBtn").onclick = () => {
+            window.open(GOOGLE_FORM, "_blank");
+        };
+
     } catch (err) {
         console.error(err);
-        alert("Error saving data.");
+        alert("Error updating data.");
     }
 });
