@@ -1,5 +1,4 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-
 import {
     getFirestore,
     collection,
@@ -9,7 +8,7 @@ import {
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
-// Firebase Configuration
+// Firebase config
 const firebaseConfig = {
     apiKey: "AIzaSyBmlrYtgQ90nokJHrlQ8nHXlm2bjV1HeBM",
     authDomain: "dominoeffectresearch.firebaseapp.com",
@@ -19,99 +18,116 @@ const firebaseConfig = {
     appId: "1:697760158609:web:3f78d522dfa0c5b62a0030"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Get form
+// FORM
 const form = document.getElementById("loginForm");
 
-// Random Participant ID
-const participantID = "P-" + Math.floor(Math.random() * 1000000);
+// Google Form link
+const googleFormLink = "https://forms.gle/2b34XGkhKcWNTf8H8";
 
-let documentID = null;
+// Participant ID (clean format)
+const participantID = "P-" + Math.floor(100000 + Math.random() * 900000);
 
-// Save visit when page opens
+let docID = null;
+const startTime = Date.now();
+
+// -------------------- DEVICE INFO --------------------
+function getBrowser() {
+    const ua = navigator.userAgent;
+    if (ua.includes("Edg")) return "Edge";
+    if (ua.includes("Chrome")) return "Chrome";
+    if (ua.includes("Firefox")) return "Firefox";
+    if (ua.includes("Safari")) return "Safari";
+    return "Unknown";
+}
+
+function getPlatform() {
+    const ua = navigator.userAgent;
+    if (ua.includes("Windows")) return "Windows";
+    if (ua.includes("Android")) return "Android";
+    if (ua.includes("iPhone")) return "iOS";
+    if (ua.includes("Mac")) return "macOS";
+    return "Unknown";
+}
+
+// -------------------- SAVE ON OPEN --------------------
 async function saveVisit() {
     try {
-        const docRef = await addDoc(collection(db, "research"), {
+        const ref = await addDoc(collection(db, "research"), {
             participantID: participantID,
-            pageOpened: true,
+            browser: getBrowser(),
+            platform: getPlatform(),
+            screen: screen.width + "x" + screen.height,
             loginClicked: false,
-            completed: false,
-            pageOpenedTime: serverTimestamp()
+            createdAt: serverTimestamp()
         });
 
-        documentID = docRef.id;
+        docID = ref.id;
 
-        console.log("Participant saved:", documentID);
+        console.log("Saved:", docID);
 
-    } catch (error) {
-        console.error("Firestore Error:", error);
+    } catch (err) {
+        console.error(err);
     }
 }
 
-// Call it immediately
 saveVisit();
 
-// Login button
+// -------------------- LOGIN CLICK --------------------
 form.addEventListener("submit", async (e) => {
-
     e.preventDefault();
 
+    const timeSpent = Math.floor((Date.now() - startTime) / 1000);
+
     try {
-
-        if (documentID) {
-
-            await updateDoc(doc(db, "research", documentID), {
+        if (docID) {
+            await updateDoc(doc(db, "research", docID), {
                 loginClicked: true,
-                completed: true,
+                timeSpent: timeSpent,
                 loginTime: serverTimestamp()
             });
-
         }
 
-        // Replace the form with a success message
+        // COMPLETION SCREEN
         document.body.innerHTML = `
-            <div style="
-                display:flex;
-                justify-content:center;
-                align-items:center;
-                height:100vh;
-                background:#f5f7fb;
-                font-family:Arial,sans-serif;
-            ">
-                <div style="
-                    background:white;
-                    padding:30px;
-                    border-radius:12px;
-                    box-shadow:0 0 15px rgba(0,0,0,.15);
-                    max-width:500px;
-                    text-align:center;
-                ">
-                    <h2>✅ Simulation Complete</h2>
+        <div style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:Arial;background:#f4f6f9;">
+            <div style="background:white;padding:30px;border-radius:12px;box-shadow:0 10px 20px rgba(0,0,0,.15);text-align:center;max-width:500px;">
+                
+                <h2>Simulation Complete</h2>
 
-                    <p>
-                    This was a simulated phishing exercise for our research.
-                    </p>
+                <p>This was a simulated cybersecurity experiment.</p>
 
-                    <p>
-                    <strong>No username or password was collected or stored.</strong>
-                    </p>
+                <p><b>No passwords or personal credentials were collected.</b></p>
 
-                    <p>
-                    Thank you for participating!
-                    </p>
+                <hr>
+
+                <h3>Your Participant ID</h3>
+
+                <div style="font-size:22px;font-weight:bold;margin:10px 0;">
+                    ${participantID}
                 </div>
+
+                <button onclick="navigator.clipboard.writeText('${participantID}')"
+                style="padding:10px 15px;margin:10px;background:#2d7ff9;color:white;border:none;border-radius:6px;cursor:pointer;">
+                    Copy ID
+                </button>
+
+                <br><br>
+
+                <a href="${googleFormLink}" target="_blank">
+                    <button style="padding:12px 18px;background:#28a745;color:white;border:none;border-radius:6px;cursor:pointer;">
+                        Continue to Google Form
+                    </button>
+                </a>
+
             </div>
+        </div>
         `;
 
-    } catch (error) {
-
-        console.error(error);
-
-        alert("An error occurred while saving the research data.");
-
+    } catch (err) {
+        console.error(err);
+        alert("Error saving data.");
     }
-
 });
